@@ -4,23 +4,30 @@ use oauth2::basic::{
     BasicErrorResponse, BasicRevocationErrorResponse, BasicTokenIntrospectionResponse,
     BasicTokenResponse,
 };
-use oauth2::{Client, EndpointMaybeSet, StandardRevocableToken, TokenResponse};
+use oauth2::{
+    Client, EndpointNotSet, EndpointSet, EndpointState, StandardRevocableToken,
+    TokenResponse,
+};
 use reqwest::{Request, Response};
 use reqwest_middleware::{Middleware, Next};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-pub type MaybeClient = Client<
+pub type MaybeClient<
+    HasDeviceAuthUrl = EndpointNotSet,
+    HasIntrospectionUrl = EndpointNotSet,
+    HasRevocationUrl = EndpointNotSet,
+> = Client<
     BasicErrorResponse,
     BasicTokenResponse,
     BasicTokenIntrospectionResponse,
     StandardRevocableToken,
     BasicRevocationErrorResponse,
-    EndpointMaybeSet,
-    EndpointMaybeSet,
-    EndpointMaybeSet,
-    EndpointMaybeSet,
-    EndpointMaybeSet,
+    EndpointSet,
+    HasDeviceAuthUrl,
+    HasIntrospectionUrl,
+    HasRevocationUrl,
+    EndpointSet,
 >;
 
 #[async_trait]
@@ -31,12 +38,23 @@ pub trait TokenStorage {
     async fn set(&self, token: BasicTokenResponse) -> std::result::Result<(), Self::Error>;
 }
 
-pub struct OAuth2Middleware<E> {
-    pub client: MaybeClient,
+pub struct OAuth2Middleware<
+    E,
+    HasDeviceAuthUrl: EndpointState = EndpointNotSet,
+    HasIntrospectionUrl: EndpointState = EndpointNotSet,
+    HasRevocationUrl: EndpointState = EndpointNotSet,
+> {
+    pub client: MaybeClient<HasDeviceAuthUrl, HasIntrospectionUrl, HasRevocationUrl>,
     pub storage: Arc<RwLock<dyn TokenStorage<Error = E> + Sync + Send>>,
 }
 
-impl<E: std::fmt::Debug + std::error::Error + Send + Sync + 'static> OAuth2Middleware<E> {
+impl<
+        E: std::fmt::Debug + std::error::Error + Send + Sync + 'static,
+        HasDeviceAuthUrl: EndpointState,
+        HasIntrospectionUrl: EndpointState,
+        HasRevocationUrl: EndpointState,
+    > OAuth2Middleware<E, HasDeviceAuthUrl, HasIntrospectionUrl, HasRevocationUrl>
+{
     async fn bearer_token(&self) -> Result<Option<BasicTokenResponse>, anyhow::Error> {
         let guard = self.storage.read().await;
 
@@ -58,7 +76,6 @@ impl<E: std::fmt::Debug + std::error::Error + Send + Sync + 'static> OAuth2Middl
                     let new_token = self
                         .client
                         .exchange_refresh_token(&refresh_token)
-                        .unwrap()
                         .request_async(&http_client)
                         .await?;
 
