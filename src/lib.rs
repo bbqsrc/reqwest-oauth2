@@ -56,7 +56,7 @@ impl<
         HasRevocationUrl: EndpointState,
     > OAuth2Middleware<E, HasDeviceAuthUrl, HasIntrospectionUrl, HasRevocationUrl>
 {
-    async fn bearer_token(&self) -> Result<Option<BasicTokenResponse>, anyhow::Error> {
+    pub async fn bearer_token(&self) -> Result<Option<BasicTokenResponse>, anyhow::Error> {
         let guard = self.storage.read().await;
 
         let Some(record) = guard.get().await? else {
