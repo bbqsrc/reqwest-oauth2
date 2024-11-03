@@ -38,6 +38,7 @@ pub trait TokenStorage {
     async fn set(&self, token: BasicTokenResponse) -> std::result::Result<(), Self::Error>;
 }
 
+#[derive(Clone)]
 pub struct OAuth2Middleware<
     E,
     HasDeviceAuthUrl: EndpointState = EndpointNotSet,
