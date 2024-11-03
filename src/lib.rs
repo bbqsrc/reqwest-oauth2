@@ -10,7 +10,7 @@ use reqwest_middleware::{Middleware, Next};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-type MaybeClient = Client<
+pub type MaybeClient = Client<
     BasicErrorResponse,
     BasicTokenResponse,
     BasicTokenIntrospectionResponse,
@@ -32,8 +32,8 @@ pub trait TokenStorage {
 }
 
 pub struct OAuth2Middleware<E> {
-    client: MaybeClient,
-    storage: Arc<RwLock<dyn TokenStorage<Error = E> + Sync + Send>>,
+    pub client: MaybeClient,
+    pub storage: Arc<RwLock<dyn TokenStorage<Error = E> + Sync + Send>>,
 }
 
 impl<E: std::fmt::Debug + std::error::Error + Send + Sync + 'static> OAuth2Middleware<E> {
